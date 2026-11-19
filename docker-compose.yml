@@ -1,0 +1,36 @@
+
+services:
+  mongodb:
+    image: mongo:8
+    container_name: rentingfleet-mongodb
+    restart: unless-stopped
+    ports:
+      - "27018:27017"
+    volumes:
+      - rentingfleet-mongo-data:/data/db
+      - ./docker/mongo-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: src/GtMotive.Estimate.Microservice.Host/Dockerfile
+    container_name: rentingfleet-api
+    restart: unless-stopped
+    ports:
+      - "56860:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      MongoDb__ConnectionString: mongodb://mongodb:27017
+      MongoDb__MongoDbDatabaseName: rentingfleet
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+volumes:
+  rentingfleet-mongo-data:
+    name: rentingfleet-mongo-data
